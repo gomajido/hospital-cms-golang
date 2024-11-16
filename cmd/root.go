@@ -16,9 +16,9 @@ type CoreDependency struct {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "nabitu-service",
-	Short: "Nabitu Core Application",
-	Long:  "Nabitu Core Application",
+	Use:   "apexa-service",
+	Short: "Apexa Core Application",
+	Long:  "Apexa Core Application",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -4,17 +4,17 @@ http:
   writeTimeout: 15
   apiPrefix: "/api"
   baseURL: "/"
-  basicAuthSecret: "nabitu-service:supersecretrahasiajoss"
+  basicAuthSecret: "apexa-service:supersecretrahasiajoss"
 database:
   driverName: "mysql"
-  master: "postgres://postgres:postgres@127.0.0.1:5432/nabitu_service?sslmode=disable"
-  slaves: "postgres://postgres:postgres@127.0.0.1:5432/nabitu_service?sslmode=disable"
+  master: "postgres://postgres:postgres@127.0.0.1:5432/apexa_service?sslmode=disable"
+  slaves: "postgres://postgres:postgres@127.0.0.1:5432/apexa_service?sslmode=disable"
   maxOpenConns: 30
   maxIdleConns: 10
   connMaxLifetime: 900
   user: "root"
   password: "root"
-  dbname: "nabitu"
+  dbname: "apexa"
   network: ""
   address: "3306"
 redis:
@@ -22,17 +22,17 @@ redis:
   password: ""
   db: 1
 fonnte:
-  baseURL: "https://api.fonnte.com"
-  overSeasAPIKey: "t1_os_b5qYn1PYkSX--M"
-  domesticAPIKey: "3ACx!mpSe2Fb#!YxW5abg"
-  OTPOverSeasAPIKey: "!khTVg2BxWJMPRP76RLU"
-  OTPDomesticAPIKey: "!khTVg2BxWJMPRP76RLU"
-  FallbackAPIKey: "3ACx!mpSe2Fb#!YxW5ab"
+  baseURL: ""
+  overSeasAPIKey: ""
+  domesticAPIKey: ""
+  OTPOverSeasAPIKey: ""
+  OTPDomesticAPIKey: ""
+  FallbackAPIKey: ""
 privy:
-  baseURL: "https://stg-core.privy.id"
-  username: "nabitu"
-  password: "1mpspepmeh5c030zopc1"
-  merchantKey: "50ztm7hslj5tnge5q95n"
+  baseURL: ""
+  username: "apexa"
+  password: ""
+  merchantKey: "5"
 s3:
   accessKeyID: ""
   secretAccessKey: ""
@@ -41,44 +41,44 @@ s3:
   bucket: ""
   endpointUrl: ""
 bsi:
-  url: "https://bsi.nabitu.id"
-  token: "4|9MyAqAPoB0SXa5MKt2Ta1hGIY4ZB5LFX0xwKUCpy"
+  url: ""
+  token: ""
 ses:
   Region: "ap-southeast-1"
   AccessKey: ""
   SecretKey: ""
   Session: ""
-  FromAddress: "no-reply@nabitu.id"
+  FromAddress: "no-reply@apexa.id"
   FromName: "no-reply"
 smtp:
   SmtpServer: "sandbox.smtp.mailtrap.io"
   SmtpPort: "2525"
   Identity: ""
-  Username: "cf63cf11a2049c"
-  Password: "dd2cd3b77d99b0"
-  FromAddress: "no-reply@nabitu.id"
-  FromName: "Nabitu"
+  Username: ""
+  Password: ""
+  FromAddress: "no-reply@apexa.id"
+  FromName: "Apexa"
   #  AuthType must be => LOGIN, PLAIN, CRAM-MD5
   AuthType: "LOGIN"
   UseTLS: false
   InsecureSkipVerify: true
 telegram:
-  BaseUrl: "https://api.telegram.org"
+  BaseUrl: ""
   apiPrefix: "bot"
-  DefaultChatID: "-1001633324519"
-  Token: "1749678032:AAHkA8ollPLonh0VMG9C_T1Esmnee-ykcM0"
+  DefaultChatID: ""
+  Token: ""
 discord:
   BaseUrl: "https://discord.com"
   apiPrefix: "api"
-  DefaultWebhookID: "1265225352729591850"
-  Token: "KJ4v893rjO1FAjjnQTHQZpnonphx9aNRcb2hXBT9kPXMbMwtSe7pRQUNPFoXamKH1tK_"
+  DefaultWebhookID: ""
+  Token: "K"
 secret:
   Provider: "AWS"
   Region: "ap-southeast-3"
   AccessKey: ""
   SecretKey: ""
-  SecretName: "NABITU_BETA"
+  SecretName: "APEXA_BETA"
 gotenberg:
-  Url: "https://nabitu-pdf.utfhsz.easypanel.host"
+  Url: ""
 media:
-  rootPath: "Nabitu"
+  rootPath: "Apexa"

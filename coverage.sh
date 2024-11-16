@@ -4,16 +4,16 @@
 
 COVERAGE_DIR="${COVERAGE_DIR:-coverage}"
 PKG_LIST=$(go list ./... |
-grep -v /go-core-nabitu/cmd |
-grep -v /go-core-nabitu/config |
-grep -v /go-core-nabitu/testemail |
-grep -v /go-core-nabitu/assets |
-grep -v /go-core-nabitu/internal/router |
-grep -v /go-core-nabitu/internal/response |
-grep -v /go-core-nabitu/internal/dependency |
-grep -v /go-core-nabitu/internal/constant |
-grep -v /go-core-nabitu/internal/helper |
-grep -v /go-core-nabitu/pkg 
+grep -v /go-core-apexa/cmd |
+grep -v /go-core-apexa/config |
+grep -v /go-core-apexa/testemail |
+grep -v /go-core-apexa/assets |
+grep -v /go-core-apexa/internal/router |
+grep -v /go-core-apexa/internal/response |
+grep -v /go-core-apexa/internal/dependency |
+grep -v /go-core-apexa/internal/constant |
+grep -v /go-core-apexa/internal/helper |
+grep -v /go-core-apexa/pkg 
 )
 
 # Create the coverage files directory

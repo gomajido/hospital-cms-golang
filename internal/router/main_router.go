@@ -17,8 +17,8 @@ func Run(r *Router) error {
 		Prefork:       true,
 		CaseSensitive: true,
 		StrictRouting: true,
-		ServerHeader:  "Nabitu",
-		AppName:       "Nabitu Core API",
+		ServerHeader:  "Apexa",
+		AppName:       "Apexa Core API",
 		BodyLimit:     100 * 1024 * 1024, // 10mb
 	})
 	app.Use(recover.New())

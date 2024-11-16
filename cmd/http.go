@@ -16,7 +16,7 @@ import (
 
 var restCmd = &cobra.Command{
 	Use:   "serve-rest-api",
-	Short: "API for Nabitu Application",
+	Short: "API for Apexa Application",
 	Long:  `The functionality is to be exposed as REST APIs as per the documentation provided.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ServeRestAPI()

@@ -18,7 +18,7 @@ func Init() {
 	_, file, line, _ := runtime.Caller(1)
 	slash := strings.LastIndex(file, "/")
 	file = file[slash+1:]
-	if os.Getenv("NABITU_ENV") == "local" || os.Getenv("NABITU_ENV") == "staging" {
+	if os.Getenv("APEXA_ENV") == "local" || os.Getenv("APEXA_ENV") == "staging" {
 		config := zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		zapLogger, _ = config.Build()
@@ -36,7 +36,7 @@ func Init() {
 			}
 		}), zap.Fields(
 			stackdriver.LogServiceContext(&stackdriver.ServiceContext{
-				Service: "nabitu-service",
+				Service: "apexa-service",
 				Version: "1.0.0",
 			}),
 		),
