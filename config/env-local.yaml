@@ -1,0 +1,84 @@
+http:
+  address: "localhost:8089"
+  readTimeout: 15
+  writeTimeout: 15
+  apiPrefix: "/api"
+  baseURL: "/"
+  basicAuthSecret: "nabitu-service:supersecretrahasiajoss"
+database:
+  driverName: "mysql"
+  master: "postgres://postgres:postgres@127.0.0.1:5432/nabitu_service?sslmode=disable"
+  slaves: "postgres://postgres:postgres@127.0.0.1:5432/nabitu_service?sslmode=disable"
+  maxOpenConns: 30
+  maxIdleConns: 10
+  connMaxLifetime: 900
+  user: "root"
+  password: "root"
+  dbname: "nabitu"
+  network: ""
+  address: "3306"
+redis:
+  address: "localhost:32768"
+  password: ""
+  db: 1
+fonnte:
+  baseURL: "https://api.fonnte.com"
+  overSeasAPIKey: "t1_os_b5qYn1PYkSX--M"
+  domesticAPIKey: "3ACx!mpSe2Fb#!YxW5abg"
+  OTPOverSeasAPIKey: "!khTVg2BxWJMPRP76RLU"
+  OTPDomesticAPIKey: "!khTVg2BxWJMPRP76RLU"
+  FallbackAPIKey: "3ACx!mpSe2Fb#!YxW5ab"
+privy:
+  baseURL: "https://stg-core.privy.id"
+  username: "nabitu"
+  password: "1mpspepmeh5c030zopc1"
+  merchantKey: "50ztm7hslj5tnge5q95n"
+s3:
+  accessKeyID: ""
+  secretAccessKey: ""
+  sessionToken: ""
+  region: ""
+  bucket: ""
+  endpointUrl: ""
+bsi:
+  url: "https://bsi.nabitu.id"
+  token: "4|9MyAqAPoB0SXa5MKt2Ta1hGIY4ZB5LFX0xwKUCpy"
+ses:
+  Region: "ap-southeast-1"
+  AccessKey: ""
+  SecretKey: ""
+  Session: ""
+  FromAddress: "no-reply@nabitu.id"
+  FromName: "no-reply"
+smtp:
+  SmtpServer: "sandbox.smtp.mailtrap.io"
+  SmtpPort: "2525"
+  Identity: ""
+  Username: "cf63cf11a2049c"
+  Password: "dd2cd3b77d99b0"
+  FromAddress: "no-reply@nabitu.id"
+  FromName: "Nabitu"
+  #  AuthType must be => LOGIN, PLAIN, CRAM-MD5
+  AuthType: "LOGIN"
+  UseTLS: false
+  InsecureSkipVerify: true
+telegram:
+  BaseUrl: "https://api.telegram.org"
+  apiPrefix: "bot"
+  DefaultChatID: "-1001633324519"
+  Token: "1749678032:AAHkA8ollPLonh0VMG9C_T1Esmnee-ykcM0"
+discord:
+  BaseUrl: "https://discord.com"
+  apiPrefix: "api"
+  DefaultWebhookID: "1265225352729591850"
+  Token: "KJ4v893rjO1FAjjnQTHQZpnonphx9aNRcb2hXBT9kPXMbMwtSe7pRQUNPFoXamKH1tK_"
+secret:
+  Provider: "AWS"
+  Region: "ap-southeast-3"
+  AccessKey: ""
+  SecretKey: ""
+  SecretName: "NABITU_BETA"
+gotenberg:
+  Url: "https://nabitu-pdf.utfhsz.easypanel.host"
+media:
+  rootPath: "Nabitu"
