@@ -3,10 +3,10 @@ package response
 import (
 	"errors"
 
-	helperValidator "ggithub.com/gomajido/hospital-cms-golang/internal/helper/validator"
-	"ggithub.com/gomajido/hospital-cms-golang/pkg/app_log"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	helperValidator "github.com/gomajido/hospital-cms-golang/internal/helper/validator"
+	"github.com/gomajido/hospital-cms-golang/pkg/app_log"
 )
 
 type CustomResponse struct {

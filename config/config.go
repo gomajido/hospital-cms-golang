@@ -45,6 +45,11 @@ type Config struct {
 	Secret     SecretManagerConfig
 	Gotenberg  GotenbergConfig
 	Media      MediaConfig
+	Token      TokenConfig
+}
+
+type TokenConfig struct {
+	TokenExpiration string `json:"TokenExpiration"`
 }
 
 type HttpConfig struct {

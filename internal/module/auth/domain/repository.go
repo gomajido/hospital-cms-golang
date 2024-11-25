@@ -18,4 +18,10 @@ type AuthRepository interface {
 	GetRoleByID(ctx context.Context, id string) (*Role, error)
 	AssignRolesToUser(ctx context.Context, userID string, roleIDs []string) error
 	GetUserRoles(ctx context.Context, userID string) ([]Role, error)
+
+	// Token management
+	CreateUserToken(ctx context.Context, token *UserToken) error
+	GetUserTokenByIDAndToken(ctx context.Context, userID string, token string) (*UserToken, error)
+	InvalidateUserToken(ctx context.Context, userID string, token string) error
+	InvalidateUserTokens(ctx context.Context, userID string) error
 }

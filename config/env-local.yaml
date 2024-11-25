@@ -1,5 +1,5 @@
 http:
-  address: "localhost:8089"
+  address: "localhost:8080"
   readTimeout: 15
   writeTimeout: 15
   apiPrefix: "/api"
@@ -13,10 +13,10 @@ database:
   maxIdleConns: 10
   connMaxLifetime: 900
   user: "root"
-  password: "root"
+  password: "password"
   dbname: "apexa"
-  network: ""
-  address: "3306"
+  network: "tcp"
+  address: "localhost:3308"
 redis:
   address: "localhost:32768"
   password: ""
