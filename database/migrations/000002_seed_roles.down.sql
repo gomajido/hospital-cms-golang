@@ -1,2 +1,2 @@
 -- Remove seeded roles
-DELETE FROM roles WHERE name IN ('admin', 'doctor', 'nurse', 'receptionist', 'patient');
+DELETE FROM roles WHERE name IN ('admin', 'member','doctor', 'nurse', 'receptionist', 'patient');

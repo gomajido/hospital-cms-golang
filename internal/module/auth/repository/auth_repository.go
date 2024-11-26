@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
-	"github.com/gomajido/hospital-cms-golang/pkg/app_log"
 	"github.com/google/uuid"
 )
 
@@ -40,7 +41,6 @@ func (r *authRepository) CreateUser(ctx context.Context, user *domain.User) erro
 	)
 
 	if err != nil {
-		app_log.Errorf("failed to create user : %v", err.Error())
 		return err
 	}
 
@@ -49,13 +49,12 @@ func (r *authRepository) CreateUser(ctx context.Context, user *domain.User) erro
 
 func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `
-		SELECT id, email, password, name, phone, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, email, password, name, phone, status, email_verified_at, created_at, updated_at
 		FROM users
 		WHERE email = ? AND deleted_at IS NULL
 	`
 
 	user := &domain.User{}
-	var deletedAt sql.NullTime
 	err := r.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
 		&user.Email,
@@ -66,25 +65,18 @@ func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*dom
 		&user.EmailVerifiedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
-		&deletedAt,
 	)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		app_log.Errorf("failed to get user by email : %v", err.Error())
 		return nil, err
-	}
-
-	if deletedAt.Valid {
-		user.DeletedAt = &deletedAt.Time
 	}
 
 	// Get user roles
 	roles, err := r.GetUserRoles(ctx, user.ID)
 	if err != nil {
-		app_log.Errorf("failed to get user roles : %v", err.Error())
 		return nil, err
 	}
 	user.Roles = roles
@@ -118,7 +110,6 @@ func (r *authRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		app_log.Errorf("failed to get user by id : %v", err.Error())
 		return nil, err
 	}
 
@@ -129,7 +120,6 @@ func (r *authRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 	// Get user roles
 	roles, err := r.GetUserRoles(ctx, user.ID)
 	if err != nil {
-		app_log.Errorf("failed to get user roles : %v", err.Error())
 		return nil, err
 	}
 	user.Roles = roles
@@ -153,7 +143,6 @@ func (r *authRepository) UpdateUser(ctx context.Context, user *domain.User) erro
 	)
 
 	if err != nil {
-		app_log.Errorf("failed to update user : %v", err.Error())
 		return err
 	}
 
@@ -178,7 +167,6 @@ func (r *authRepository) DeleteUser(ctx context.Context, id string) error {
 
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		app_log.Errorf("failed to delete user : %v", err.Error())
 		return err
 	}
 
@@ -195,17 +183,22 @@ func (r *authRepository) DeleteUser(ctx context.Context, id string) error {
 }
 
 func (r *authRepository) GetRolesByNames(ctx context.Context, names []string) ([]domain.Role, error) {
-	query := `
+	// Create placeholders for the IN clause
+	placeholders := make([]string, len(names))
+	args := make([]interface{}, len(names))
+	for i := range names {
+		placeholders[i] = "?"
+		args[i] = names[i]
+	}
+
+	query := fmt.Sprintf(`
 		SELECT id, name, description, created_at, updated_at
 		FROM roles
-		WHERE name IN (?) AND deleted_at IS NULL
-	`
+		WHERE name IN (%s) AND deleted_at IS NULL
+	`, strings.Join(placeholders, ","))
 
-	// Convert slice to string for IN clause
-	// Note: In production, use a proper SQL builder or parameter binding for IN clause
-	rows, err := r.db.QueryContext(ctx, query, names)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		app_log.Errorf("failed to get roles by names : %v", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -221,10 +214,13 @@ func (r *authRepository) GetRolesByNames(ctx context.Context, names []string) ([
 			&role.UpdatedAt,
 		)
 		if err != nil {
-			app_log.Errorf("failed to scan role : %v", err.Error())
 			return nil, err
 		}
 		roles = append(roles, role)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return roles, nil
@@ -252,7 +248,6 @@ func (r *authRepository) GetRoleByID(ctx context.Context, id string) (*domain.Ro
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		app_log.Errorf("failed to get role by id : %v", err.Error())
 		return nil, err
 	}
 
@@ -274,7 +269,6 @@ func (r *authRepository) AssignRolesToUser(ctx context.Context, userID string, r
 	deleteQuery := `DELETE FROM user_roles WHERE user_id = ?`
 	_, err = tx.ExecContext(ctx, deleteQuery, userID)
 	if err != nil {
-		app_log.Errorf("failed to delete existing roles : %v", err.Error())
 		return err
 	}
 
@@ -291,7 +285,6 @@ func (r *authRepository) AssignRolesToUser(ctx context.Context, userID string, r
 			roleID,
 		)
 		if err != nil {
-			app_log.Errorf("failed to assign role to user : %v", err.Error())
 			return err
 		}
 	}
@@ -309,7 +302,6 @@ func (r *authRepository) GetUserRoles(ctx context.Context, userID string) ([]dom
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
-		app_log.Errorf("failed to get user roles : %v", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -325,7 +317,6 @@ func (r *authRepository) GetUserRoles(ctx context.Context, userID string) ([]dom
 			&role.UpdatedAt,
 		)
 		if err != nil {
-			app_log.Errorf("failed to scan role : %v", err.Error())
 			return nil, err
 		}
 		roles = append(roles, role)
@@ -334,15 +325,14 @@ func (r *authRepository) GetUserRoles(ctx context.Context, userID string) ([]dom
 	return roles, nil
 }
 
-func (r *authRepository) CreateUserToken(ctx context.Context, token *domain.UserToken) error {
+func (r *authRepository) CreateUserToken(ctx context.Context, token *domain.UserToken) (*domain.UserToken, error) {
 	query := `
 		INSERT INTO user_tokens (id, user_id, token, ability, expired_at, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, NOW(), NOW())`
 
 	abilityJSON, err := json.Marshal(token.Ability)
 	if err != nil {
-		app_log.Errorf("failed to marshal ability: %v", err)
-		return err
+		return nil, fmt.Errorf("failed to marshal ability: %w", err)
 	}
 
 	_, err = r.db.ExecContext(ctx, query,
@@ -352,26 +342,24 @@ func (r *authRepository) CreateUserToken(ctx context.Context, token *domain.User
 		abilityJSON,
 		token.ExpiredAt,
 	)
-
 	if err != nil {
-		app_log.Errorf("failed to create user token: %v", err)
-		return err
+		return nil, fmt.Errorf("failed to create user token: %w", err)
 	}
 
-	return nil
+	return token, nil
 }
 
-func (r *authRepository) GetUserTokenByIDAndToken(ctx context.Context, userID string, token string) (*domain.UserToken, error) {
+func (r *authRepository) GetUserTokenByID(ctx context.Context, tokenID string) (*domain.UserToken, error) {
 	query := `
 		SELECT id, user_id, token, ability, expired_at, created_at, updated_at, deleted_at
 		FROM user_tokens
-		WHERE user_id = ? AND token = ? AND deleted_at IS NULL`
+		WHERE id = ? AND deleted_at IS NULL`
 
 	userToken := &domain.UserToken{}
 	var abilityJSON []byte
 	var deletedAt sql.NullTime
 
-	err := r.db.QueryRowContext(ctx, query, userID, token).Scan(
+	err := r.db.QueryRowContext(ctx, query, tokenID).Scan(
 		&userToken.ID,
 		&userToken.UserID,
 		&userToken.Token,
@@ -386,7 +374,6 @@ func (r *authRepository) GetUserTokenByIDAndToken(ctx context.Context, userID st
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		app_log.Errorf("failed to get user token: %v", err)
 		return nil, err
 	}
 
@@ -397,7 +384,6 @@ func (r *authRepository) GetUserTokenByIDAndToken(ctx context.Context, userID st
 	// Unmarshal ability JSON
 	var ability []string
 	if err := json.Unmarshal(abilityJSON, &ability); err != nil {
-		app_log.Errorf("failed to unmarshal ability: %v", err)
 		return nil, err
 	}
 	userToken.Ability = ability
@@ -405,15 +391,14 @@ func (r *authRepository) GetUserTokenByIDAndToken(ctx context.Context, userID st
 	return userToken, nil
 }
 
-func (r *authRepository) InvalidateUserToken(ctx context.Context, userID string, token string) error {
+func (r *authRepository) InvalidateUserToken(ctx context.Context, tokenID string) error {
 	query := `
 		UPDATE user_tokens
 		SET deleted_at = NOW()
-		WHERE user_id = ? AND token = ? AND deleted_at IS NULL`
+		WHERE id = ? AND deleted_at IS NULL`
 
-	result, err := r.db.ExecContext(ctx, query, userID, token)
+	result, err := r.db.ExecContext(ctx, query, tokenID)
 	if err != nil {
-		app_log.Errorf("failed to invalidate user token: %v", err)
 		return err
 	}
 
@@ -437,7 +422,6 @@ func (r *authRepository) InvalidateUserTokens(ctx context.Context, userID string
 
 	result, err := r.db.ExecContext(ctx, query, userID)
 	if err != nil {
-		app_log.Errorf("failed to invalidate user tokens: %v", err)
 		return err
 	}
 
@@ -447,7 +431,7 @@ func (r *authRepository) InvalidateUserTokens(ctx context.Context, userID string
 	}
 
 	if rows == 0 {
-		return errors.New("no active tokens found")
+		return errors.New("no tokens found")
 	}
 
 	return nil

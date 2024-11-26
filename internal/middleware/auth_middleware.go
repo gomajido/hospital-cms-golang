@@ -3,7 +3,6 @@ package middleware
 import (
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
@@ -44,40 +43,28 @@ func (m *AuthMiddleware) Protected() fiber.Handler {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
-		userID := credentials[0]
+		tokenID := credentials[0]
 		token := credentials[1]
 
-		if userID == "" || token == "" {
-			err := errors.New("missing user ID or token")
+		if tokenID == "" || token == "" {
+			err := errors.New("missing token ID or token")
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
+		}
+
+		// Validate token
+		err := m.usecase.ValidateUserToken(c.Context(), tokenID, token)
+		if err != nil {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
 		// Get token from database
-		userToken, err := m.usecase.GetUserTokenByIDAndToken(c.Context(), userID, token)
-		if err != nil {
-			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
-		}
-		if userToken == nil {
-			err := errors.New("token not found")
-			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
-		}
-
-		// Check if token is expired
-		if time.Now().After(userToken.ExpiredAt) {
-			err := errors.New("token expired")
-			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
-		}
-
-		// Get user
-		user, err := m.usecase.GetUserByID(c.Context(), userID)
+		userToken, err := m.usecase.GetUserTokenByID(c.Context(), tokenID)
 		if err != nil {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
-		// Store user and token info in context
-		c.Locals("user", user)
-		c.Locals("token", userToken)
-		c.Locals("abilities", userToken.Ability)
+		// Set user token in context
+		c.Locals("user_token", userToken)
 
 		return c.Next()
 	}
@@ -86,15 +73,15 @@ func (m *AuthMiddleware) Protected() fiber.Handler {
 // HasAbility checks if the user has the required ability
 func (m *AuthMiddleware) HasAbility(ability string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		abilities, ok := c.Locals("abilities").([]string)
+		userToken, ok := c.Locals("user_token").(*domain.UserToken)
 		if !ok {
-			err := errors.New("missing user abilities")
+			err := errors.New("missing user token")
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
 		// Check if user has the required ability
 		hasAbility := false
-		for _, a := range abilities {
+		for _, a := range userToken.Ability {
 			if a == ability {
 				hasAbility = true
 				break
@@ -113,16 +100,16 @@ func (m *AuthMiddleware) HasAbility(ability string) fiber.Handler {
 // HasAnyAbility checks if the user has any of the required abilities
 func (m *AuthMiddleware) HasAnyAbility(abilities ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userAbilities, ok := c.Locals("abilities").([]string)
+		userToken, ok := c.Locals("user_token").(*domain.UserToken)
 		if !ok {
-			err := errors.New("missing user abilities")
+			err := errors.New("missing user token")
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
 		// Check if user has any of the required abilities
 		hasAbility := false
 		for _, required := range abilities {
-			for _, userAbility := range userAbilities {
+			for _, userAbility := range userToken.Ability {
 				if required == userAbility {
 					hasAbility = true
 					break
@@ -145,16 +132,16 @@ func (m *AuthMiddleware) HasAnyAbility(abilities ...string) fiber.Handler {
 // HasAllAbilities checks if the user has all of the required abilities
 func (m *AuthMiddleware) HasAllAbilities(abilities ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userAbilities, ok := c.Locals("abilities").([]string)
+		userToken, ok := c.Locals("user_token").(*domain.UserToken)
 		if !ok {
-			err := errors.New("missing user abilities")
+			err := errors.New("missing user token")
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
 		// Check if user has all required abilities
 		for _, required := range abilities {
 			hasAbility := false
-			for _, userAbility := range userAbilities {
+			for _, userAbility := range userToken.Ability {
 				if required == userAbility {
 					hasAbility = true
 					break

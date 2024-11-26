@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gomajido/hospital-cms-golang/config"
 	"github.com/gomajido/hospital-cms-golang/internal/dependency"
+	articleRouter "github.com/gomajido/hospital-cms-golang/internal/module/article/router"
 	authRouter "github.com/gomajido/hospital-cms-golang/internal/module/auth/router"
 )
 
@@ -30,11 +31,13 @@ func Run(r *Router) error {
 	})
 
 	// API routes
-	api := app.Group("/api")
-	v1 := api.Group("/v1")
+	v1 := app.Group("/api/v1")
 
 	// Register auth routes
 	authRouter.RegisterAuthRoutes(v1, r.ApplicationHandler.AuthHandler, r.ApplicationHandler.AuthMiddleware)
+
+	// Register article routes
+	articleRouter.RegisterArticleRoutes(v1, r.ApplicationHandler.ArticleHandler, r.ApplicationHandler.AuthMiddleware)
 
 	err := app.Listen(r.HttpConfig.Address)
 	if err != nil {

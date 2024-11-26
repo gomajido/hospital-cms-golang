@@ -17,13 +17,13 @@ func RegisterAuthRoutes(router fiber.Router, handler domain.AuthHandler, authMid
 	// Protected routes
 	auth.Use(authMiddleware.Protected())
 	auth.Post("/logout", handler.Logout)
-	
+
 	// User management routes
 	users := auth.Group("/users")
-	users.Get("/:id", handler.GetUserByID)
-	users.Put("/:id", handler.UpdateUser)
-	
+	users.Get("/me", handler.GetUserByID)
+	users.Put("/me", handler.UpdateUser)
+
 	// Role management routes
-	users.Post("/:id/roles", handler.AssignRoles)
-	users.Get("/:id/roles", handler.GetUserRoles)
+	// users.Post("/:id/roles", handler.AssignRoles)
+	// users.Get("/:id/roles", handler.GetUserRoles)
 }

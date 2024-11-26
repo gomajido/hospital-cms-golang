@@ -1,0 +1,244 @@
+{
+	"info": {
+		"_postman_id": "b5a7e8d1-f3c4-4b5a-8e9c-9d2b3c4d5e6f",
+		"name": "Hospital CMS - Articles",
+		"description": "Collection for testing the Hospital CMS Article endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"token\", jsonData.data.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"description": "Login to get authentication token"
+					}
+				}
+			]
+		},
+		{
+			"name": "Articles",
+			"item": [
+				{
+					"name": "List Articles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles?page=1&limit=10&status=published",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "status",
+									"value": "published",
+									"description": "Article status (published, draft, scheduled)"
+								}
+							]
+						},
+						"description": "Get a list of articles with pagination and optional status filter"
+					}
+				},
+				{
+					"name": "Get Article by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles/{{article_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles", "{{article_id}}"]
+						},
+						"description": "Get a single article by its ID"
+					}
+				},
+				{
+					"name": "Get Article by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles/slug/{{article_slug}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles", "slug", "{{article_slug}}"]
+						},
+						"description": "Get a single article by its slug"
+					}
+				},
+				{
+					"name": "Create Article",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Sample Article Title\",\n    \"content\": \"This is the main content of the article. It can contain HTML markup.\",\n    \"excerpt\": \"A brief summary of the article\",\n    \"main_image\": \"https://example.com/image.jpg\",\n    \"status\": \"draft\",\n    \"meta_title\": \"SEO Title\",\n    \"meta_description\": \"SEO Description\",\n    \"meta_keywords\": \"keyword1, keyword2\",\n    \"canonical_url\": \"https://example.com/canonical\",\n    \"focus_keyphrase\": \"main keyword\",\n    \"og_title\": \"Open Graph Title\",\n    \"og_description\": \"Open Graph Description\",\n    \"og_image\": \"https://example.com/og-image.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles"]
+						},
+						"description": "Create a new article"
+					}
+				},
+				{
+					"name": "Update Article",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Article Title\",\n    \"content\": \"Updated content of the article.\",\n    \"excerpt\": \"Updated summary\",\n    \"main_image\": \"https://example.com/new-image.jpg\",\n    \"status\": \"published\",\n    \"meta_title\": \"Updated SEO Title\",\n    \"meta_description\": \"Updated SEO Description\",\n    \"meta_keywords\": \"updated, keywords\",\n    \"canonical_url\": \"https://example.com/updated-canonical\",\n    \"focus_keyphrase\": \"updated keyword\",\n    \"og_title\": \"Updated Open Graph Title\",\n    \"og_description\": \"Updated Open Graph Description\",\n    \"og_image\": \"https://example.com/updated-og-image.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles/{{article_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles", "{{article_id}}"]
+						},
+						"description": "Update an existing article"
+					}
+				},
+				{
+					"name": "Delete Article",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/articles/{{article_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "articles", "{{article_id}}"]
+						},
+						"description": "Delete an article"
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "user_email",
+			"value": "admin@example.com",
+			"type": "string"
+		},
+		{
+			"key": "user_password",
+			"value": "your_password",
+			"type": "string"
+		},
+		{
+			"key": "article_id",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string"
+		},
+		{
+			"key": "article_slug",
+			"value": "sample-article-title",
+			"type": "string"
+		}
+	]
+}

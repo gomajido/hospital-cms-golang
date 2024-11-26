@@ -1,17 +1,19 @@
 package domain
 
+import "time"
+
 // RegisterResponse represents the registration response
 type RegisterResponse struct {
-	User  *User    `json:"user"`
-	Roles []string `json:"roles"`
+	User *User `json:"user"`
 }
 
-// LoginResponse represents the login response
+// LoginResponse represents the response after successful login
 type LoginResponse struct {
-	User         *User    `json:"user"`
-	AccessToken  string   `json:"access_token"`
-	RefreshToken string   `json:"refresh_token"`
-	TokenType    string   `json:"token_type"`
-	ExpiresIn    int64    `json:"expires_in"`
-	Ability      []string `json:"ability"`
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	Phone     string    `json:"phone"`
+	Status    string    `json:"status"`
+	Token     string    `json:"token"`
+	ExpiredAt time.Time `json:"expired_at"`
 }
