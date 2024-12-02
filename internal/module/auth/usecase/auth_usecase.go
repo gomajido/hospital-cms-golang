@@ -12,6 +12,7 @@ import (
 
 	"github.com/gomajido/hospital-cms-golang/config"
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
+	"github.com/gomajido/hospital-cms-golang/pkg/app_log"
 	"github.com/google/uuid"
 )
 
@@ -43,16 +44,19 @@ func (a *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest)
 	// Check if user with the same email already exists
 	existingUser, err := a.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
+		app_log.Errorf("Failed to check existing user: %v", err)
 		return nil, err
 	}
 
 	if existingUser != nil {
+		app_log.Errorf("User already exists with email: %s", req.Email)
 		return nil, errors.New("user with this email already exists")
 	}
 
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		app_log.Errorf("Failed to hash password: %v", err)
 		return nil, err
 	}
 
@@ -66,28 +70,33 @@ func (a *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest)
 
 	err = a.repo.CreateUser(ctx, user)
 	if err != nil {
+		app_log.Errorf("Failed to create user: %v", err)
 		return nil, err
 	}
 
 	// Get the default role (member)
 	roles, err := a.repo.GetRolesByNames(ctx, []string{"member"})
 	if err != nil {
+		app_log.Errorf("Failed to get member role: %v", err)
 		return nil, err
 	}
 
 	if len(roles) == 0 {
+		app_log.Error("Default role 'member' not found")
 		return nil, errors.New("default role 'member' not found")
 	}
 
 	// Assign the member role to the user
 	err = a.repo.AssignRolesToUser(ctx, user.ID, []string{roles[0].ID})
 	if err != nil {
+		app_log.Errorf("Failed to assign member role to user: %v", err)
 		return nil, err
 	}
 
 	// Get the updated user with roles
 	updatedUser, err := a.repo.GetUserByID(ctx, user.ID)
 	if err != nil {
+		app_log.Errorf("Failed to get updated user: %v", err)
 		return nil, err
 	}
 
@@ -102,24 +111,28 @@ func (a *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	user, err := a.repo.GetUserByEmail(ctx, req.Email)
 
 	if err != nil || user == nil {
+		app_log.Errorf("User not found: %v", err)
 		return nil, errors.New("invalid credentials")
 	}
 
 	// Compare passwords
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
+		app_log.Errorf("User not found: %v", err)
 		return nil, errors.New("invalid credentials")
 	}
 
 	// Generate token
 	token, err := a.generateToken()
 	if err != nil {
+		app_log.Errorf("Failed to generate token: %v", err)
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
 	// Get user roles
 	roles, err := a.repo.GetUserRoles(ctx, user.ID)
 	if err != nil {
+		app_log.Errorf("Failed to get user roles: %v", err)
 		return nil, fmt.Errorf("failed to get user roles: %w", err)
 	}
 
@@ -142,6 +155,7 @@ func (a *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	// Save token
 	createdToken, err := a.repo.CreateUserToken(ctx, userToken)
 	if err != nil {
+		app_log.Errorf("Failed to create user token: %v", err)
 		return nil, fmt.Errorf("failed to create user token: %w", err)
 	}
 
@@ -180,15 +194,18 @@ func (a *authUsecase) GetUserRoles(ctx context.Context, userID string) ([]domain
 func (a *authUsecase) GetUserTokenByID(ctx context.Context, tokenID string) (*domain.UserToken, error) {
 	userToken, err := a.repo.GetUserTokenByID(ctx, tokenID)
 	if err != nil {
+		app_log.Errorf("Failed to get user token: %v", err)
 		return nil, fmt.Errorf("failed to get user token: %w", err)
 	}
 
 	if userToken == nil {
+		app_log.Errorf("Token not found: %s", tokenID)
 		return nil, errors.New("token not found")
 	}
 
 	// Check if token has expired
 	if userToken.ExpiredAt.Before(time.Now()) {
+		app_log.Errorf("Token has expired: %s", tokenID)
 		return nil, errors.New("token has expired")
 	}
 
@@ -199,15 +216,18 @@ func (a *authUsecase) GetUserTokenByID(ctx context.Context, tokenID string) (*do
 func (a *authUsecase) ValidateUserToken(ctx context.Context, tokenID string, token string) error {
 	userToken, err := a.repo.GetUserTokenByID(ctx, tokenID)
 	if err != nil {
+		app_log.Errorf("Failed to get user token: %v", err)
 		return fmt.Errorf("failed to get user token: %w", err)
 	}
 
 	if userToken == nil {
+		app_log.Errorf("Token not found: %s", tokenID)
 		return errors.New("token not found")
 	}
 
 	// Check if token has expired
 	if userToken.ExpiredAt.Before(time.Now()) {
+		app_log.Errorf("Token has expired: %s", tokenID)
 		return errors.New("token has expired")
 	}
 

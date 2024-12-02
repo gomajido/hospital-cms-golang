@@ -24,11 +24,51 @@ func NewArticleUsecase(ar domain.ArticleRepository) domain.ArticleUsecase {
 }
 
 func (u *articleUsecase) GetByID(ctx context.Context, id uuid.UUID) (*domain.Article, error) {
-	return u.articleRepo.GetByID(ctx, id)
+	article, err := u.articleRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only increment visitor count for published articles
+	if article.Status == "published" {
+		// Use a goroutine to increment visitor count asynchronously
+		go func() {
+			// Create a new context with timeout for the async operation
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			
+			if err := u.articleRepo.IncrementVisitorCount(ctx, id); err != nil {
+				// Log error but don't affect the main response
+				fmt.Printf("Error incrementing visitor count: %v\n", err)
+			}
+		}()
+	}
+
+	return article, nil
 }
 
 func (u *articleUsecase) GetBySlug(ctx context.Context, slug string) (*domain.Article, error) {
-	return u.articleRepo.GetBySlug(ctx, slug)
+	article, err := u.articleRepo.GetBySlug(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only increment visitor count for published articles
+	if article.Status == "published" {
+		// Use a goroutine to increment visitor count asynchronously
+		go func() {
+			// Create a new context with timeout for the async operation
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			
+			if err := u.articleRepo.IncrementVisitorCount(ctx, article.ID); err != nil {
+				// Log error but don't affect the main response
+				fmt.Printf("Error incrementing visitor count: %v\n", err)
+			}
+		}()
+	}
+
+	return article, nil
 }
 
 func (u *articleUsecase) List(ctx context.Context, page, limit int, status string) ([]domain.Article, int64, error) {
@@ -239,6 +279,21 @@ func (u *articleUsecase) Delete(ctx context.Context, id uuid.UUID, userID uuid.U
 	}
 
 	return u.articleRepo.Delete(ctx, id)
+}
+
+func (u *articleUsecase) IncrementVisitorCount(ctx context.Context, id uuid.UUID) error {
+	// Check if article exists
+	article, err := u.articleRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if article == nil {
+		return fmt.Errorf("article not found")
+	}
+
+	// Increment visitor count
+	return u.articleRepo.IncrementVisitorCount(ctx, id)
 }
 
 // stripHTML removes HTML tags from a string

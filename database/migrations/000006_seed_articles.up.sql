@@ -23,7 +23,7 @@ INSERT INTO articles (
 ) VALUES
 -- Article 1: Heart Health
 (
-    UUID(),
+    '123e4567-e89b-12d3-a456-426614174000',
     'Understanding Heart Health: Prevention and Treatment',
     'understanding-heart-health-prevention-and-treatment',
     '<h2>What is Cardiovascular Health?</h2>
@@ -75,7 +75,7 @@ INSERT INTO articles (
 
 -- Article 2: Mental Health
 (
-    UUID(),
+    '223e4567-e89b-12d3-a456-426614174000',
     'Mental Health and Wellness in Modern Times',
     'mental-health-and-wellness-in-modern-times',
     '<h2>Understanding Mental Health</h2>
@@ -125,7 +125,7 @@ INSERT INTO articles (
 
 -- Article 3: Diabetes Care
 (
-    UUID(),
+    '323e4567-e89b-12d3-a456-426614174000',
     'Managing Diabetes: A Comprehensive Guide',
     'managing-diabetes-comprehensive-guide',
     '<h2>Understanding Diabetes</h2>

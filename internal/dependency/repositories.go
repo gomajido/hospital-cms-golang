@@ -26,6 +26,6 @@ func InitCommonRepos(Adapters *Adapters, Drivers *Drivers, config *config.Config
 func InitRepos(db *sql.DB, redis *redis.Redis) *AppRepositories {
 	return &AppRepositories{
 		AuthRepo:    repository.NewAuthRepository(db),
-		ArticleRepo: articleRepo.NewMySQLArticleRepository(db),
+		ArticleRepo: articleRepo.NewArticleRepository(db),
 	}
 }
