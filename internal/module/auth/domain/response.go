@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // RegisterResponse represents the registration response
 type RegisterResponse struct {
@@ -9,7 +13,7 @@ type RegisterResponse struct {
 
 // LoginResponse represents the response after successful login
 type LoginResponse struct {
-	ID        string    `json:"id"`
+	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`
 	Name      string    `json:"name"`
 	Phone     string    `json:"phone"`

@@ -1,13 +1,12 @@
 package handler
 
 import (
-	"errors"
-	"strings"
-	"unicode"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
 	"github.com/gomajido/hospital-cms-golang/internal/response"
+	"github.com/google/uuid"
 )
 
 type authHandler struct {
@@ -25,74 +24,11 @@ func NewAuthHandler(usecase domain.AuthUsecase) domain.AuthHandler {
 func (h *authHandler) Register(c *fiber.Ctx) error {
 	var req domain.RegisterRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest)
 	}
 
-	// Validate required fields
-	var validationErrors []string
-
-	// Email validation
-	if req.Email == "" {
-		validationErrors = append(validationErrors, "email is required")
-	} else if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
-		validationErrors = append(validationErrors, "invalid email format")
-	}
-
-	// Password validation
-	if req.Password == "" {
-		validationErrors = append(validationErrors, "password is required")
-	} else if len(req.Password) < 8 {
-		validationErrors = append(validationErrors, "password must be at least 8 characters long")
-	} else {
-		var (
-			hasUpper   bool
-			hasLower   bool
-			hasNumber  bool
-			hasSpecial bool
-		)
-		for _, char := range req.Password {
-			switch {
-			case unicode.IsUpper(char):
-				hasUpper = true
-			case unicode.IsLower(char):
-				hasLower = true
-			case unicode.IsNumber(char):
-				hasNumber = true
-			case unicode.IsPunct(char) || unicode.IsSymbol(char):
-				hasSpecial = true
-			}
-		}
-		if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
-			validationErrors = append(validationErrors, "password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
-		}
-	}
-
-	// Name validation
-	if req.Name == "" {
-		validationErrors = append(validationErrors, "name is required")
-	} else if len(req.Name) < 2 {
-		validationErrors = append(validationErrors, "name must be at least 2 characters long")
-	}
-
-	// Phone validation (if provided)
-	if req.Phone != "" {
-		// Remove any non-digit characters
-		phone := strings.Map(func(r rune) rune {
-			if unicode.IsDigit(r) {
-				return r
-			}
-			return -1
-		}, req.Phone)
-
-		if len(phone) < 10 || len(phone) > 15 {
-			validationErrors = append(validationErrors, "phone number must be between 10 and 15 digits")
-		}
-		// Update the request with cleaned phone number
-		req.Phone = phone
-	}
-
-	if len(validationErrors) > 0 {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New(strings.Join(validationErrors, "; "))))
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
 	}
 
 	resp, err := h.usecase.Register(c.Context(), &req)
@@ -100,7 +36,7 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 		if err.Error() == "user already exists" {
 			return c.Status(fiber.StatusConflict).JSON(response.ErrBadRequest.WithError(err))
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(response.Ok.WithData(resp))
@@ -110,12 +46,11 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 func (h *authHandler) Login(c *fiber.Ctx) error {
 	var req domain.LoginRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest)
 	}
 
-	// Validate request
-	if req.Email == "" || req.Password == "" {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing required fields")))
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
 	}
 
 	resp, err := h.usecase.Login(c.Context(), &req)
@@ -123,109 +58,136 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 		if err.Error() == "invalid credentials" {
 			return c.Status(fiber.StatusUnauthorized).JSON(response.ErrUnauthorized.WithError(err))
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(response.Ok.WithData(resp))
+	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(resp))
 }
 
 // Logout handles user logout
 func (h *authHandler) Logout(c *fiber.Ctx) error {
-	userToken, ok := c.Locals("user_token").(*domain.UserToken)
-	if !ok {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing user token")))
+	if err := h.usecase.Logout(c.Context(), c.Locals("user_token").(string)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	if err := h.usecase.Logout(c.Context(), userToken.ID); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
-	}
-
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(nil))
+	return c.Status(fiber.StatusOK).JSON(response.Ok)
 }
 
 // GetUserByID retrieves a user by their ID
 func (h *authHandler) GetUserByID(c *fiber.Ctx) error {
-	userToken, ok := c.Locals("user_token").(*domain.UserToken)
-	if !ok {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing user token")))
+	userIDStr := c.Params("id")
+	if userIDStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("user id is required")))
 	}
 
-	user, err := h.usecase.GetUserByID(c.Context(), userToken.UserID)
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid user id format")))
+	}
+
+	user, err := h.usecase.GetUserByID(c.Context(), userID)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(user))
 }
 
-// UpdateUser updates user information
+// UpdateUser handles updating user details
 func (h *authHandler) UpdateUser(c *fiber.Ctx) error {
+	// Get user token from context
 	userToken, ok := c.Locals("user_token").(*domain.UserToken)
 	if !ok {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing user token")))
-	}
-
-	// First get the existing user
-	existingUser, err := h.usecase.GetUserByID(c.Context(), userToken.UserID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("failed to get user")))
-	}
-
-	// Parse the update request
-	var updateReq struct {
-		Name   string `json:"name"`
-		Phone  string `json:"phone"`
-		Status string `json:"status"`
-	}
-	if err := c.BodyParser(&updateReq); err != nil {
+		err := fmt.Errorf("missing user token")
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 	}
 
-	// Update only the allowed fields
-	existingUser.Name = updateReq.Name
-	existingUser.Phone = updateReq.Phone
-	existingUser.Status = updateReq.Status
-
-	if err := h.usecase.UpdateUser(c.Context(), existingUser); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("failed to update user")))
+	var req domain.UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(existingUser))
+	if err := req.Validate(); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithErrorInfo(err))
+	}
+
+	// Get current user data
+	user, err := h.usecase.GetUserByID(c.Context(), userToken.UserID)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
+	}
+
+	// Update user fields
+	user.Name = req.Name
+	user.Phone = req.Phone
+
+	// Update user in database
+	err = h.usecase.UpdateUser(c.Context(), user)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Ok)
 }
 
 // AssignRoles assigns roles to a user
 func (h *authHandler) AssignRoles(c *fiber.Ctx) error {
-	var req struct {
-		RoleNames []string `json:"role_names"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
+	userIDStr := c.Params("id")
+	if userIDStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("user id is required")))
 	}
 
-	// Get user ID from params
-	userID := c.Params("id")
-	if userID == "" {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing user ID")))
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid user id format")))
+	}
+
+	var req domain.AssignRolesRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest)
+	}
+
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
 	}
 
 	if err := h.usecase.AssignRoles(c.Context(), userID, req.RoleNames); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
+		if err.Error() == "user not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(nil))
+	return c.Status(fiber.StatusOK).JSON(response.Ok)
 }
 
 // GetUserRoles retrieves all roles assigned to a user
 func (h *authHandler) GetUserRoles(c *fiber.Ctx) error {
-	// Get user ID from params
-	userID := c.Params("id")
-	if userID == "" {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("missing user ID")))
+	userIDStr := c.Params("id")
+	if userIDStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("user id is required")))
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid user id format")))
 	}
 
 	roles, err := h.usecase.GetUserRoles(c.Context(), userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(errors.New("something went wrong")))
+		if err.Error() == "user not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(roles))

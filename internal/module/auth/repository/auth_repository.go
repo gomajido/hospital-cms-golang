@@ -28,7 +28,7 @@ func (r *authRepository) CreateUser(ctx context.Context, user *domain.User) erro
 		VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
 
-	user.ID = uuid.New().String()
+	user.ID = uuid.New()
 	user.Status = "inactive" // Default status
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -84,37 +84,24 @@ func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*dom
 	return user, nil
 }
 
-func (r *authRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+func (r *authRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	query := `
-		SELECT id, email, password, name, phone, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, email, password, name, phone, status, created_at, updated_at
 		FROM users
-		WHERE id = ? AND deleted_at IS NULL
+		WHERE id = ?
 	`
 
 	user := &domain.User{}
-	var deletedAt sql.NullTime
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Password,
-		&user.Name,
-		&user.Phone,
-		&user.Status,
-		&user.EmailVerifiedAt,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&deletedAt,
+		&user.ID, &user.Email, &user.Password, &user.Name,
+		&user.Phone, &user.Status, &user.CreatedAt, &user.UpdatedAt,
 	)
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
 	}
-
-	if deletedAt.Valid {
-		user.DeletedAt = &deletedAt.Time
+	if err != nil {
+		return nil, err
 	}
 
 	// Get user roles
@@ -158,7 +145,7 @@ func (r *authRepository) UpdateUser(ctx context.Context, user *domain.User) erro
 	return nil
 }
 
-func (r *authRepository) DeleteUser(ctx context.Context, id string) error {
+func (r *authRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE users
 		SET deleted_at = NOW(), updated_at = NOW()
@@ -226,39 +213,31 @@ func (r *authRepository) GetRolesByNames(ctx context.Context, names []string) ([
 	return roles, nil
 }
 
-func (r *authRepository) GetRoleByID(ctx context.Context, id string) (*domain.Role, error) {
+func (r *authRepository) GetRoleByID(ctx context.Context, id uuid.UUID) (*domain.Role, error) {
 	query := `
 		SELECT id, name, description, created_at, updated_at
 		FROM roles
-		WHERE id = ? AND deleted_at IS NULL
+		WHERE id = ?
 	`
 
 	role := &domain.Role{}
-	var deletedAt sql.NullTime
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&role.ID,
-		&role.Name,
-		&role.Description,
-		&role.CreatedAt,
-		&role.UpdatedAt,
-		&deletedAt,
+		&role.ID, &role.Name, &role.Description,
+		&role.CreatedAt, &role.UpdatedAt,
 	)
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("role not found")
 	}
-
-	if deletedAt.Valid {
-		role.DeletedAt = &deletedAt.Time
+	if err != nil {
+		return nil, err
 	}
 
 	return role, nil
 }
 
-func (r *authRepository) AssignRolesToUser(ctx context.Context, userID string, roleIDs []string) error {
+func (r *authRepository) AssignRolesToUser(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID) error {
+	// Start a transaction
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -266,24 +245,15 @@ func (r *authRepository) AssignRolesToUser(ctx context.Context, userID string, r
 	defer tx.Rollback()
 
 	// Delete existing roles
-	deleteQuery := `DELETE FROM user_roles WHERE user_id = ?`
-	_, err = tx.ExecContext(ctx, deleteQuery, userID)
+	_, err = tx.ExecContext(ctx, "DELETE FROM user_roles WHERE user_id = ?", userID)
 	if err != nil {
 		return err
 	}
 
 	// Insert new roles
-	insertQuery := `
-		INSERT INTO user_roles (id, user_id, role_id, created_at, updated_at)
-		VALUES (?, ?, ?, NOW(), NOW())
-	`
-
+	query := "INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)"
 	for _, roleID := range roleIDs {
-		_, err = tx.ExecContext(ctx, insertQuery,
-			uuid.New().String(),
-			userID,
-			roleID,
-		)
+		_, err = tx.ExecContext(ctx, query, userID, roleID)
 		if err != nil {
 			return err
 		}
@@ -292,12 +262,12 @@ func (r *authRepository) AssignRolesToUser(ctx context.Context, userID string, r
 	return tx.Commit()
 }
 
-func (r *authRepository) GetUserRoles(ctx context.Context, userID string) ([]domain.Role, error) {
+func (r *authRepository) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]domain.Role, error) {
 	query := `
-		SELECT r.id, r.name, r.description, r.created_at, r.updated_at
+		SELECT r.id, r.name, r.description
 		FROM roles r
-		JOIN user_roles ur ON r.id = ur.role_id
-		WHERE ur.user_id = ? AND r.deleted_at IS NULL AND ur.deleted_at IS NULL
+		INNER JOIN user_roles ur ON ur.role_id = r.id
+		WHERE ur.user_id = ?
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
@@ -309,17 +279,14 @@ func (r *authRepository) GetUserRoles(ctx context.Context, userID string) ([]dom
 	var roles []domain.Role
 	for rows.Next() {
 		var role domain.Role
-		err := rows.Scan(
-			&role.ID,
-			&role.Name,
-			&role.Description,
-			&role.CreatedAt,
-			&role.UpdatedAt,
-		)
-		if err != nil {
+		if err := rows.Scan(&role.ID, &role.Name, &role.Description); err != nil {
 			return nil, err
 		}
 		roles = append(roles, role)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return roles, nil
@@ -349,7 +316,7 @@ func (r *authRepository) CreateUserToken(ctx context.Context, token *domain.User
 	return token, nil
 }
 
-func (r *authRepository) GetUserTokenByID(ctx context.Context, tokenID string) (*domain.UserToken, error) {
+func (r *authRepository) GetUserTokenByID(ctx context.Context, tokenID uuid.UUID) (*domain.UserToken, error) {
 	query := `
 		SELECT id, user_id, token, ability, expired_at, created_at, updated_at, deleted_at
 		FROM user_tokens
@@ -391,7 +358,7 @@ func (r *authRepository) GetUserTokenByID(ctx context.Context, tokenID string) (
 	return userToken, nil
 }
 
-func (r *authRepository) InvalidateUserToken(ctx context.Context, tokenID string) error {
+func (r *authRepository) InvalidateUserToken(ctx context.Context, tokenID uuid.UUID) error {
 	query := `
 		UPDATE user_tokens
 		SET deleted_at = NOW()
@@ -414,25 +381,8 @@ func (r *authRepository) InvalidateUserToken(ctx context.Context, tokenID string
 	return nil
 }
 
-func (r *authRepository) InvalidateUserTokens(ctx context.Context, userID string) error {
-	query := `
-		UPDATE user_tokens
-		SET deleted_at = NOW()
-		WHERE user_id = ? AND deleted_at IS NULL`
-
-	result, err := r.db.ExecContext(ctx, query, userID)
-	if err != nil {
-		return err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows == 0 {
-		return errors.New("no tokens found")
-	}
-
-	return nil
+func (r *authRepository) InvalidateUserTokens(ctx context.Context, userID uuid.UUID) error {
+	query := `UPDATE user_tokens SET is_valid = false WHERE user_id = ?`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
 }

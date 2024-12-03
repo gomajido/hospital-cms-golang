@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 
@@ -88,41 +89,41 @@ func (h *ArticleHandler) GetBySlug(c *fiber.Ctx) error {
 // @Failure 400 {object} response.ErrorResponse
 // @Router /articles [get]
 func (h *ArticleHandler) List(c *fiber.Ctx) error {
-	page, err := strconv.Atoi(c.Query("page", "1"))
+	var req domain.ListArticlesRequest
+
+	// Parse query parameters
+	req.Page, _ = strconv.Atoi(c.Query("page", "1"))
+	req.Limit, _ = strconv.Atoi(c.Query("limit", "10"))
+	req.Status = c.Query("status")
+
+	// Parse category ID if provided
+	if categoryIDStr := c.Query("category_id"); categoryIDStr != "" {
+		categoryID, err := uuid.Parse(categoryIDStr)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid category ID format")))
+		}
+		req.CategoryID = &categoryID
+	}
+
+	// Validate request
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
+	}
+
+	articles, total, err := h.articleUsecase.List(c.Context(), req.Limit, req.Page, req.Status)
 	if err != nil {
-		app_log.Errorf("Invalid page number: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
-	}
-
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
-	if err != nil {
-		app_log.Errorf("Invalid limit number: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
-	}
-
-	status := c.Query("status")
-
-	if page < 1 {
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("page must be greater than 0")))
-	}
-	if limit < 1 {
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("limit must be greater than 0")))
-	}
-
-	articles, total, err := h.articleUsecase.List(c.Context(), page, limit, status)
-	if err != nil {
-		app_log.Errorf("Failed to fetch articles: %v, page: %d, limit: %d", err, page, limit)
 		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(domain.ArticlesResponse{
-		Data: articles,
-		Meta: domain.PaginationMeta{
-			CurrentPage: page,
-			TotalPages:  totalPages,
-			TotalItems:  total,
-			PerPage:     limit,
+	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+
+	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(fiber.Map{
+		"articles": articles,
+		"meta": fiber.Map{
+			"page":        req.Page,
+			"limit":       req.Limit,
+			"total":       total,
+			"total_pages": totalPages,
 		},
 	}))
 }
@@ -141,31 +142,28 @@ func (h *ArticleHandler) List(c *fiber.Ctx) error {
 func (h *ArticleHandler) Create(c *fiber.Ctx) error {
 	var req domain.CreateArticleRequest
 	if err := c.BodyParser(&req); err != nil {
-		app_log.Errorf("Failed to parse create article request: %v", err)
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
 	}
 
-	// Get user ID from user token in context
+	// Get user from context
 	userToken, ok := c.Locals("user_token").(*authdomain.UserToken)
-	if !ok || userToken == nil {
-		app_log.Error("User token not found in context")
-		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrUnauthorized)
+	if !ok {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(fmt.Errorf("missing user token")))
 	}
 
-	userID, err := uuid.Parse(userToken.UserID)
-	if err != nil {
-		app_log.Errorf("Invalid user ID format in token: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid user ID format")))
-	}
+	req.AuthorID = userToken.UserID
 
-	req.AuthorID = userID
+	// Validate request
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
+	}
 
 	article, err := h.articleUsecase.Create(c.Context(), req)
 	if err != nil {
-		app_log.Errorf("Failed to create article: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(article))
+
+	return c.Status(fiber.StatusCreated).JSON(response.Ok.WithData(article))
 }
 
 // Update godoc
@@ -183,39 +181,45 @@ func (h *ArticleHandler) Create(c *fiber.Ctx) error {
 // @Router /articles/{id} [put]
 func (h *ArticleHandler) Update(c *fiber.Ctx) error {
 	id := c.Params("id")
-
 	articleID, err := uuid.Parse(id)
 	if err != nil {
-		app_log.Errorf("Invalid article ID format: %v, ID: %s", err, id)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid article ID format")))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid article ID format")))
 	}
 
 	var req domain.UpdateArticleRequest
 	if err := c.BodyParser(&req); err != nil {
-		app_log.Errorf("Failed to parse update article request: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
 	}
 
-	// Get user ID from user token in context
+	// Validate request
+	if errors := req.Validate(); len(errors) > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
+	}
+
+	// Get user from context
 	userToken, ok := c.Locals("user_token").(*authdomain.UserToken)
-	if !ok || userToken == nil {
-		app_log.Error("User token not found in context")
-		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrUnauthorized)
+	if !ok {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(fmt.Errorf("missing user token")))
 	}
 
-	userID, err := uuid.Parse(userToken.UserID)
+	// Check if user is author or has permission
+	article, err := h.articleUsecase.GetByID(c.Context(), articleID)
 	if err != nil {
-		app_log.Errorf("Invalid user ID format in token: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid user ID format")))
+		if err.Error() == "article not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	article, err := h.articleUsecase.Update(c.Context(), articleID, userID, req)
+	updatedArticle, err := h.articleUsecase.Update(c.Context(), article.ID, userToken.UserID, req)
 	if err != nil {
-		app_log.Errorf("Failed to update article: %v, ID: %s, userID: %s", err, id, userID)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
+		if err.Error() == "article not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(article))
+	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(updatedArticle))
 }
 
 // Delete godoc
@@ -232,33 +236,34 @@ func (h *ArticleHandler) Update(c *fiber.Ctx) error {
 // @Router /articles/{id} [delete]
 func (h *ArticleHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
-
 	articleID, err := uuid.Parse(id)
 	if err != nil {
-		app_log.Errorf("Invalid article ID format: %v, ID: %s", err, id)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid article ID format")))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid article ID format")))
 	}
 
-	// Get user ID from user token in context
+	// Get user from context
 	userToken, ok := c.Locals("user_token").(*authdomain.UserToken)
-	if !ok || userToken == nil {
-		app_log.Error("User token not found in context")
-		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrUnauthorized)
+	if !ok {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(fmt.Errorf("missing user token")))
 	}
 
-	userID, err := uuid.Parse(userToken.UserID)
+	// Check if user is author or has permission
+	article, err := h.articleUsecase.GetByID(c.Context(), articleID)
 	if err != nil {
-		app_log.Errorf("Invalid user ID format in token: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid user ID format")))
+		if err.Error() == "article not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	err = h.articleUsecase.Delete(c.Context(), articleID, userID)
-	if err != nil {
-		app_log.Errorf("Failed to delete article: %v, ID: %s, userID: %s", err, id, userID)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(err))
+	if err := h.articleUsecase.Delete(c.Context(), article.ID, userToken.UserID); err != nil {
+		if err.Error() == "article not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok)
+	return c.Status(fiber.StatusNoContent).JSON(response.Ok)
 }
 
 // IncrementVisitorCount godoc
@@ -274,17 +279,16 @@ func (h *ArticleHandler) Delete(c *fiber.Ctx) error {
 // @Router /articles/{id}/increment-visitor [post]
 func (h *ArticleHandler) IncrementVisitorCount(c *fiber.Ctx) error {
 	id := c.Params("id")
-
 	articleID, err := uuid.Parse(id)
 	if err != nil {
-		app_log.Errorf("Invalid article ID format: %v, ID: %s", err, id)
-		return c.Status(fiber.StatusBadRequest).JSON(response.ErrBadRequest.WithError(errors.New("invalid article ID format")))
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithError(fmt.Errorf("invalid article ID format")))
 	}
 
-	err = h.articleUsecase.IncrementVisitorCount(c.Context(), articleID)
-	if err != nil {
-		app_log.Errorf("Failed to increment visitor count: %v, ID: %s", err, id)
-		return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+	if err := h.articleUsecase.IncrementVisitorCount(c.Context(), articleID); err != nil {
+		if err.Error() == "article not found" {
+			return c.Status(fiber.StatusNotFound).JSON(response.ErrRecordNotFound.WithError(err))
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response.Ok)

@@ -2,10 +2,12 @@ package domain
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID              string     `json:"id"`
+	ID              uuid.UUID  `json:"id"`
 	Email           string     `json:"email"`
 	Password        string     `json:"-"` // Never expose password in JSON
 	Name            string     `json:"name"`
@@ -19,7 +21,7 @@ type User struct {
 }
 
 type Role struct {
-	ID          string     `json:"id"`
+	ID          uuid.UUID  `json:"id"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -29,8 +31,8 @@ type Role struct {
 
 // UserToken represents a user's authentication token
 type UserToken struct {
-	ID        string     `json:"id"`
-	UserID    string     `json:"user_id"`
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
 	Token     string     `json:"token"`
 	Ability   []string   `json:"ability"`
 	ExpiredAt time.Time  `json:"expired_at"`

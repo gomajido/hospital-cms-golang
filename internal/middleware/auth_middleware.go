@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
 	"github.com/gomajido/hospital-cms-golang/internal/response"
+	"github.com/google/uuid"
 )
 
 type AuthMiddleware struct {
@@ -43,16 +44,22 @@ func (m *AuthMiddleware) Protected() fiber.Handler {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
-		tokenID := credentials[0]
+		tokenIDStr := credentials[0]
 		token := credentials[1]
 
-		if tokenID == "" || token == "" {
+		if tokenIDStr == "" || token == "" {
 			err := errors.New("missing token ID or token")
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}
 
+		// Parse token ID to UUID
+		tokenID, err := uuid.Parse(tokenIDStr)
+		if err != nil {
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(errors.New("invalid token ID format")))
+		}
+
 		// Validate token
-		err := m.usecase.ValidateUserToken(c.Context(), tokenID, token)
+		err = m.usecase.ValidateUserToken(c.Context(), tokenIDStr, token)
 		if err != nil {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(response.ErrUnprocessableEntity.WithError(err))
 		}

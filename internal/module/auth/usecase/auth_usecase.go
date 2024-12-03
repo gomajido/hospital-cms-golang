@@ -86,8 +86,11 @@ func (a *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest)
 		return nil, errors.New("default role 'member' not found")
 	}
 
+	// Convert role to UUID slice
+	roleIDs := []uuid.UUID{roles[0].ID}
+
 	// Assign the member role to the user
-	err = a.repo.AssignRolesToUser(ctx, user.ID, []string{roles[0].ID})
+	err = a.repo.AssignRolesToUser(ctx, user.ID, roleIDs)
 	if err != nil {
 		app_log.Errorf("Failed to assign member role to user: %v", err)
 		return nil, err
@@ -145,7 +148,7 @@ func (a *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	// Create user token
 	expiry := time.Now().Add(24 * time.Hour)
 	userToken := &domain.UserToken{
-		ID:        uuid.New().String(),
+		ID:        uuid.New(),
 		UserID:    user.ID,
 		Token:     token,
 		Ability:   abilities,
@@ -165,13 +168,17 @@ func (a *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 		Name:      user.Name,
 		Phone:     user.Phone,
 		Status:    user.Status,
-		Token:     createdToken.ID + "|" + token,
+		Token:     createdToken.ID.String() + "|" + token,
 		ExpiredAt: createdToken.ExpiredAt,
 	}, nil
 }
 
 // Logout invalidates the user's token
-func (a *authUsecase) Logout(ctx context.Context, tokenID string) error {
+func (a *authUsecase) Logout(ctx context.Context, tokenIDStr string) error {
+	tokenID, err := uuid.Parse(tokenIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid token ID format: %w", err)
+	}
 	return a.InvalidateUserToken(ctx, tokenID)
 }
 
@@ -181,17 +188,29 @@ func (a *authUsecase) UpdateUser(ctx context.Context, user *domain.User) error {
 }
 
 // AssignRoles assigns roles to a user
-func (a *authUsecase) AssignRoles(ctx context.Context, userID string, roleNames []string) error {
-	return a.repo.AssignRolesToUser(ctx, userID, roleNames)
+func (a *authUsecase) AssignRoles(ctx context.Context, userID uuid.UUID, roleNames []string) error {
+	// Get roles by names
+	roles, err := a.repo.GetRolesByNames(ctx, roleNames)
+	if err != nil {
+		return err
+	}
+
+	// Convert role names to UUIDs
+	roleIDs := make([]uuid.UUID, len(roles))
+	for i, role := range roles {
+		roleIDs[i] = role.ID
+	}
+
+	return a.repo.AssignRolesToUser(ctx, userID, roleIDs)
 }
 
 // GetUserRoles retrieves all roles assigned to a user
-func (a *authUsecase) GetUserRoles(ctx context.Context, userID string) ([]domain.Role, error) {
+func (a *authUsecase) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]domain.Role, error) {
 	return a.repo.GetUserRoles(ctx, userID)
 }
 
 // GetUserTokenByID retrieves a user token by ID
-func (a *authUsecase) GetUserTokenByID(ctx context.Context, tokenID string) (*domain.UserToken, error) {
+func (a *authUsecase) GetUserTokenByID(ctx context.Context, tokenID uuid.UUID) (*domain.UserToken, error) {
 	userToken, err := a.repo.GetUserTokenByID(ctx, tokenID)
 	if err != nil {
 		app_log.Errorf("Failed to get user token: %v", err)
@@ -199,57 +218,50 @@ func (a *authUsecase) GetUserTokenByID(ctx context.Context, tokenID string) (*do
 	}
 
 	if userToken == nil {
-		app_log.Errorf("Token not found: %s", tokenID)
 		return nil, errors.New("token not found")
-	}
-
-	// Check if token has expired
-	if userToken.ExpiredAt.Before(time.Now()) {
-		app_log.Errorf("Token has expired: %s", tokenID)
-		return nil, errors.New("token has expired")
 	}
 
 	return userToken, nil
 }
 
 // ValidateUserToken validates a user token
-func (a *authUsecase) ValidateUserToken(ctx context.Context, tokenID string, token string) error {
+func (a *authUsecase) ValidateUserToken(ctx context.Context, tokenIDStr string, token string) error {
+	tokenID, err := uuid.Parse(tokenIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid token ID format: %w", err)
+	}
+
 	userToken, err := a.repo.GetUserTokenByID(ctx, tokenID)
 	if err != nil {
-		app_log.Errorf("Failed to get user token: %v", err)
 		return fmt.Errorf("failed to get user token: %w", err)
 	}
 
 	if userToken == nil {
-		app_log.Errorf("Token not found: %s", tokenID)
 		return errors.New("token not found")
 	}
 
-	// Check if token has expired
-	if userToken.ExpiredAt.Before(time.Now()) {
-		app_log.Errorf("Token has expired: %s", tokenID)
-		return errors.New("token has expired")
-	}
-
-	// Compare the tokens directly since we're storing the original token
 	if userToken.Token != token {
 		return errors.New("invalid token")
+	}
+
+	if time.Now().After(userToken.ExpiredAt) {
+		return errors.New("token expired")
 	}
 
 	return nil
 }
 
 // InvalidateUserToken invalidates a user token
-func (a *authUsecase) InvalidateUserToken(ctx context.Context, tokenID string) error {
+func (a *authUsecase) InvalidateUserToken(ctx context.Context, tokenID uuid.UUID) error {
 	return a.repo.InvalidateUserToken(ctx, tokenID)
 }
 
 // InvalidateUserTokens invalidates all tokens for a user
-func (a *authUsecase) InvalidateUserTokens(ctx context.Context, userID string) error {
+func (a *authUsecase) InvalidateUserTokens(ctx context.Context, userID uuid.UUID) error {
 	return a.repo.InvalidateUserTokens(ctx, userID)
 }
 
 // GetUserByID retrieves a user by their ID
-func (a *authUsecase) GetUserByID(ctx context.Context, userID string) (*domain.User, error) {
+func (a *authUsecase) GetUserByID(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
 	return a.repo.GetUserByID(ctx, userID)
 }

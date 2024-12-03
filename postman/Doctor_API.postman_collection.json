@@ -1,0 +1,393 @@
+{
+	"info": {
+		"_postman_id": "b0e3b3e0-5b0a-4b0e-8b0a-5b0a4b0e8b0a",
+		"name": "Hospital CMS - Doctor API",
+		"description": "API endpoints for managing doctors, their schedules, and reschedules in the Hospital CMS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Doctors",
+			"description": "Endpoints for managing doctors",
+			"item": [
+				{
+					"name": "List Doctors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								}
+							]
+						},
+						"description": "Get a paginated list of doctors"
+					}
+				},
+				{
+					"name": "Get Doctor by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the doctor"
+								}
+							]
+						},
+						"description": "Get a specific doctor by their ID"
+					}
+				},
+				{
+					"name": "Create Doctor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Dr. Jane Wilson\",\n    \"service_id\": \"{{service_id}}\",\n    \"description\": \"Experienced neurologist specializing in headache disorders\",\n    \"specialization\": \"Neurology\",\n    \"degree\": \"MD, DM Neurology\",\n    \"experience\": \"10 years\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors"]
+						},
+						"description": "Create a new doctor"
+					}
+				},
+				{
+					"name": "Update Doctor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Dr. Jane Wilson\",\n    \"service_id\": \"{{service_id}}\",\n    \"description\": \"Updated description\",\n    \"specialization\": \"Neurology\",\n    \"degree\": \"MD, DM Neurology, PhD\",\n    \"experience\": \"11 years\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the doctor to update"
+								}
+							]
+						},
+						"description": "Update an existing doctor"
+					}
+				},
+				{
+					"name": "Delete Doctor",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the doctor to delete"
+								}
+							]
+						},
+						"description": "Delete a doctor"
+					}
+				}
+			]
+		},
+		{
+			"name": "Schedules",
+			"description": "Endpoints for managing doctor schedules",
+			"item": [
+				{
+					"name": "List Doctor Schedules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/:id/schedules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", ":id", "schedules"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the doctor"
+								}
+							]
+						},
+						"description": "Get all schedules for a specific doctor"
+					}
+				},
+				{
+					"name": "Create Schedule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"day\": \"Monday\",\n    \"start_time\": \"09:00:00\",\n    \"end_time\": \"17:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/:id/schedules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", ":id", "schedules"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the doctor"
+								}
+							]
+						},
+						"description": "Create a new schedule for a doctor"
+					}
+				},
+				{
+					"name": "Update Schedule",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"day\": \"Monday\",\n    \"start_time\": \"10:00:00\",\n    \"end_time\": \"18:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/schedules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "schedules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the schedule to update"
+								}
+							]
+						},
+						"description": "Update an existing schedule"
+					}
+				},
+				{
+					"name": "Delete Schedule",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/schedules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "schedules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the schedule to delete"
+								}
+							]
+						},
+						"description": "Delete a schedule"
+					}
+				}
+			]
+		},
+		{
+			"name": "Reschedules",
+			"description": "Endpoints for managing schedule changes and cancellations",
+			"item": [
+				{
+					"name": "List Schedule Reschedules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/schedules/:id/reschedules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "schedules", ":id", "reschedules"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the schedule"
+								}
+							]
+						},
+						"description": "Get all reschedules for a specific schedule"
+					}
+				},
+				{
+					"name": "Create Reschedule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2024-01-15\",\n    \"start_time\": \"10:00:00\",\n    \"end_time\": \"18:00:00\",\n    \"status\": \"changed\",\n    \"description\": \"Extended hours for special clinic\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/schedules/:id/reschedules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "schedules", ":id", "reschedules"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the schedule"
+								}
+							]
+						},
+						"description": "Create a new reschedule for a schedule"
+					}
+				},
+				{
+					"name": "Update Reschedule",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2024-01-15\",\n    \"start_time\": \"11:00:00\",\n    \"end_time\": \"19:00:00\",\n    \"status\": \"changed\",\n    \"description\": \"Updated schedule for special clinic\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/reschedules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "reschedules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the reschedule to update"
+								}
+							]
+						},
+						"description": "Update an existing reschedule"
+					}
+				},
+				{
+					"name": "Delete Reschedule",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/doctors/reschedules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "doctors", "reschedules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "UUID of the reschedule to delete"
+								}
+							]
+						},
+						"description": "Delete a reschedule"
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": "your_jwt_token_here"
+		},
+		{
+			"key": "service_id",
+			"value": "service_uuid_here"
+		}
+	]
+}

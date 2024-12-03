@@ -7,6 +7,7 @@ import (
 	"github.com/gomajido/hospital-cms-golang/internal/dependency"
 	articleRouter "github.com/gomajido/hospital-cms-golang/internal/module/article/router"
 	authRouter "github.com/gomajido/hospital-cms-golang/internal/module/auth/router"
+	doctorRouter "github.com/gomajido/hospital-cms-golang/internal/module/doctor/router"
 )
 
 type Router struct {
@@ -38,6 +39,9 @@ func Run(r *Router) error {
 
 	// Register article routes
 	articleRouter.RegisterArticleRoutes(v1, r.ApplicationHandler.ArticleHandler, r.ApplicationHandler.AuthMiddleware)
+
+	// Register doctor routes
+	doctorRouter.RegisterDoctorRoutes(v1, r.ApplicationHandler.DoctorHandler, r.ApplicationHandler.AuthMiddleware)
 
 	err := app.Listen(r.HttpConfig.Address)
 	if err != nil {
