@@ -1,0 +1,263 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+		"name": "Hospital CMS - Appointments",
+		"description": "Collection for managing appointments in the Hospital CMS system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Appointment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"doctor_id\": \"{{doctor_id}}\",\n    \"doctor_schedule_id\": \"{{schedule_id}}\",\n    \"appointment_date\": \"2024-01-20\",\n    \"appointment_time\": \"14:30\",\n    \"reason\": \"Regular checkup\",\n    \"notes\": \"First time visit\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/appointments",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments"
+					]
+				},
+				"description": "Create a new appointment"
+			}
+		},
+		{
+			"name": "Cancel Appointment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reason\": \"Unable to attend due to emergency\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/appointments/{{appointment_id}}/cancel",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"{{appointment_id}}",
+						"cancel"
+					]
+				},
+				"description": "Cancel an existing appointment"
+			}
+		},
+		{
+			"name": "Reschedule Appointment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"appointment_date\": \"2024-01-25\",\n    \"appointment_time\": \"15:00\",\n    \"reason\": \"Schedule conflict\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/appointments/{{appointment_id}}/reschedule",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"{{appointment_id}}",
+						"reschedule"
+					]
+				},
+				"description": "Reschedule an existing appointment"
+			}
+		},
+		{
+			"name": "Check Availability",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"doctor_id\": \"{{doctor_id}}\",\n    \"doctor_schedule_id\": \"{{schedule_id}}\",\n    \"appointment_date\": \"2024-01-20\",\n    \"appointment_time\": \"14:30\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/appointments/check-availability",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"check-availability"
+					]
+				},
+				"description": "Check if a time slot is available for booking"
+			}
+		},
+		{
+			"name": "Get Appointment by ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/appointments/{{appointment_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"{{appointment_id}}"
+					]
+				},
+				"description": "Get details of a specific appointment"
+			}
+		},
+		{
+			"name": "Get User's Appointments",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/appointments/my-appointments",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"my-appointments"
+					]
+				},
+				"description": "Get all appointments for the authenticated user"
+			}
+		},
+		{
+			"name": "Get Doctor's Appointments",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/appointments/doctor/{{doctor_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"appointments",
+						"doctor",
+						"{{doctor_id}}"
+					]
+				},
+				"description": "Get all appointments for a specific doctor"
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "your_jwt_token_here",
+			"type": "string"
+		},
+		{
+			"key": "doctor_id",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string"
+		},
+		{
+			"key": "schedule_id",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string"
+		},
+		{
+			"key": "appointment_id",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string"
+		}
+	]
+}

@@ -1,5 +1,5 @@
 http:
-  address: "localhost:8080"
+  address: ":8080"
   readTimeout: 15
   writeTimeout: 15
   apiPrefix: "/api"
@@ -7,8 +7,8 @@ http:
   basicAuthSecret: "apexa-service:supersecretrahasiajoss"
 database:
   driverName: "mysql"
-  master: "postgres://postgres:postgres@127.0.0.1:5432/apexa_service?sslmode=disable"
-  slaves: "postgres://postgres:postgres@127.0.0.1:5432/apexa_service?sslmode=disable"
+  master: "postgres://postgres:postgres@host.docker.internal:5432/apexa_service?sslmode=disable"
+  slaves: "postgres://postgres:postgres@host.docker.internal:5432/apexa_service?sslmode=disable"
   maxOpenConns: 30
   maxIdleConns: 10
   connMaxLifetime: 900
@@ -16,9 +16,9 @@ database:
   password: "password"
   dbname: "apexa"
   network: "tcp"
-  address: "localhost:3308"
+  address: "host.docker.internal:3308"
 redis:
-  address: "localhost:32768"
+  address: "host.docker.internal:32768"
   password: ""
   db: 1
 fonnte:

@@ -1,5 +1,23 @@
 APP_EXECUTABLE="out/apexa-service"
 
+# Docker commands
+.PHONY: docker-build docker-up docker-down docker-logs
+
+docker-build:
+	docker-compose -f deployment/local/docker-compose.yml build
+
+docker-up:
+	docker-compose -f deployment/local/docker-compose.yml up -d
+
+docker-down:
+	docker-compose -f deployment/local/docker-compose.yml down
+
+docker-logs:
+	docker-compose -f deployment/local/docker-compose.yml logs -f
+
+docker-restart:
+	docker-compose restart
+
 serve-api:
 	export APEXA_ENV=local && \
 	go run main.go serve-rest-api
@@ -28,15 +46,6 @@ format:
 fmt:
 	@echo "Formatting code style..."
 	gofmt -w -s cmd/.. \
-		internal/..
-
-	@echo "[DONE] Formatting code style..."
-
-imports:
-	@echo "Formatting imports..."
-	goimports -w -local go-core-apexa \
-		cmd/.. \
-		config/.. \
 		internal/.. \
 		pkg/..
 	@echo "[DONE] Formatting imports..."
@@ -73,6 +82,3 @@ gen-mocks:
 	mockgen --package mocks --source=internal/module/auth/domain/repository.go --destination=internal/module/auth/domain/mocks/mock_repository.go
 	mockgen --package mocks --source=internal/module/auth/domain/usecase.go --destination=internal/module/auth/domain/mocks/mock_usecase.go
 	
-
-
-
