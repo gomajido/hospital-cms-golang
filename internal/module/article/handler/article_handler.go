@@ -110,22 +110,24 @@ func (h *ArticleHandler) List(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrInvalidParam.WithErrorInfo(errors))
 	}
 
-	articles, total, err := h.articleUsecase.List(c.Context(), req.Limit, req.Page, req.Status)
+	articles, total, err := h.articleUsecase.List(c.Context(), req.Page, req.Limit, req.Status)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(fiber.Map{
-		"articles": articles,
-		"meta": fiber.Map{
-			"page":        req.Page,
-			"limit":       req.Limit,
-			"total":       total,
-			"total_pages": totalPages,
+	listResponse := response.ListResponse{
+		Meta: response.MetaResponse{
+			Page:       req.Page,
+			Limit:      req.Limit,
+			Total:      total,
+			TotalPages: totalPages,
 		},
-	}))
+		Data: articles,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(listResponse))
 }
 
 // Create godoc

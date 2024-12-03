@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -59,16 +60,19 @@ func (h *DoctorHandler) List(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrInternalServer.WithError(err))
 	}
-	data := fiber.Map{
-		"data": doctors,
-		"meta": fiber.Map{
-			"total": total,
-			"page":  page,
-			"limit": limit,
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+
+	listResponse := response.ListResponse{
+		Meta: response.MetaResponse{
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: totalPages,
 		},
+		Data: doctors,
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(data))
+	return c.Status(fiber.StatusOK).JSON(response.Ok.WithData(listResponse))
 }
 
 func (h *DoctorHandler) Update(c *fiber.Ctx) error {

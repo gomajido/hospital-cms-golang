@@ -152,3 +152,15 @@ func (e CustomResponse) WithErrorInfo(errInfo []ErrorInfo) CustomResponse {
 	}
 	return customErr
 }
+
+type ListResponse struct {
+	Meta MetaResponse `json:"meta"`
+	Data interface{}  `json:"data"`
+}
+
+type MetaResponse struct {
+	Page       int   `json:"page"`
+	Limit      int   `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
