@@ -24,4 +24,4 @@ ENV GOOS=linux GOARCH=arm64
 EXPOSE 8080
 
 # Command to run the executable
-ENTRYPOINT ["go", "run", "cmd/http/main.go"]
+ENTRYPOINT ["go", "run", "main.go", "serve-rest-api"]

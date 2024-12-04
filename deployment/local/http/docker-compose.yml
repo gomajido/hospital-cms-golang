@@ -5,11 +5,9 @@ services:
     platform: linux/arm64
     build:
       context: ../..
-      dockerfile: deployment/local/Dockerfile
+      dockerfile: deployment/local/http/Dockerfile
     ports:
       - "8080:8080"
-    environment:
-      - APEXA_ENV=local
     volumes:
       - ../..:/app
     restart: unless-stopped
