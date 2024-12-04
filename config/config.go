@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"os"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/gomajido/hospital-cms-golang/pkg/app_log"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -168,33 +170,38 @@ type MediaConfig struct {
 	RootPath string
 }
 
+func goDotEnvVariable(key string) string {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+	return os.Getenv(key)
+}
+
 func GetConfig() (*Config, error) {
-	env := os.Getenv(ENV)
+	var config Config
+	env := goDotEnvVariable("ENVIRONMENT")
+	if env == "" {
+		env = LOCAL_ENV
+	}
 	if env == LOCAL_ENV {
 		viper.SetConfigName("env-local")
-	} else if env == STAGING_ENV {
-		viper.SetConfigName("env")
-	} else {
-		viper.SetConfigName("env")
-	}
+		viper.SetConfigType("yaml")          // REQUIRED if the config file does not have the extension in the name
+		viper.AddConfigPath("/etc/appname/") // path to look for the config file in
+		viper.AddConfigPath("$HOME/.appname")
+		viper.AddConfigPath("/opt/")
+		viper.AddConfigPath("./config/") // optionally look for config in the working directory
+		err := viper.ReadInConfig()      // Find and read the config file
+		if err != nil {                  // Handle errors reading the config file
+			app_log.Fatalf("Error read config file: %s", err)
+		}
 
-	viper.SetConfigName("env-local")
-	viper.SetConfigType("yaml")          // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath("/etc/appname/") // path to look for the config file in
-	viper.AddConfigPath("$HOME/.appname")
-	viper.AddConfigPath("/opt/")
-	viper.AddConfigPath("./config/") // optionally look for config in the working directory
-	err := viper.ReadInConfig()      // Find and read the config file
-	if err != nil {                  // Handle errors reading the config file
-		app_log.Fatalf("Error read config file: %s", err)
+		err = viper.Unmarshal(&config)
+		if err != nil {
+			app_log.Fatalf("Error unmarshall config struct: %s", err)
+		}
 	}
-	var config Config
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		app_log.Fatalf("Error unmarshall config struct: %s", err)
-	}
-
-	if os.Getenv(ENV) != "local" {
+	if env != LOCAL_ENV {
 		config.loadFromSecretManager()
 	}
 	return &config, nil
@@ -202,16 +209,36 @@ func GetConfig() (*Config, error) {
 
 func (c *Config) loadFromSecretManager() {
 	app_log.Info("load config from secret manager...")
-	c.getSecretManager()
+	var provider, region, accessKey, secretKey, secretName string
+	provider, region, accessKey, secretKey, secretName =
+		goDotEnvVariable("SECRET_PROVIDER"),
+		goDotEnvVariable("SECRET_REGION"),
+		goDotEnvVariable("SECRET_ACCESS_KEY_ID"),
+		goDotEnvVariable("SECRET_SECRET_ACCESS_KEY"),
+		goDotEnvVariable("SECRET_SECRET_NAME")
+
+	if provider == "" || region == "" || accessKey == "" || secretKey == "" || secretName == "" {
+		app_log.Fatalf("Failed to load configuration: invalidsecret manager for non local env")
+	}
+	secret := &SecretManagerConfig{
+		Provider:   provider,
+		Region:     region,
+		AccessKey:  accessKey,
+		SecretKey:  secretKey,
+		SecretName: secretName,
+	}
+	c.getKeyFromSecretManager(secret)
 
 }
-func (c *Config) getSecretManager() {
-	staticCreds := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(c.Secret.AccessKey, c.Secret.SecretKey, ""))
+
+func (c *Config) getKeyFromSecretManager(secret *SecretManagerConfig) {
+	app_log.Info("get key from secret manager...")
+	staticCreds := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(secret.AccessKey, secret.SecretKey, ""))
 
 	// Load the default AWS configuration with static credentials
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithCredentialsProvider(staticCreds),
-		config.WithRegion(c.Secret.Region), // Replace with your region
+		config.WithRegion(secret.Region), // Replace with your region
 	)
 	if err != nil {
 		app_log.Fatalf("Failed to load configuration: %v", err)
@@ -221,7 +248,7 @@ func (c *Config) getSecretManager() {
 	svc := secretsmanager.NewFromConfig(cfg)
 
 	// Replace with the ARN or name of your secret
-	secretName := c.Secret.SecretName
+	secretName := secret.SecretName
 
 	// Retrieve the secret value
 	result, err := svc.GetSecretValue(context.TODO(), &secretsmanager.GetSecretValueInput{

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/gomajido/hospital-cms-golang/config"
+	appointmentDomain "github.com/gomajido/hospital-cms-golang/internal/module/appointment/domain"
+	appointmentRepo "github.com/gomajido/hospital-cms-golang/internal/module/appointment/repository"
 	articleDomain "github.com/gomajido/hospital-cms-golang/internal/module/article/domain"
 	articleRepo "github.com/gomajido/hospital-cms-golang/internal/module/article/repository"
 	"github.com/gomajido/hospital-cms-golang/internal/module/auth/domain"
@@ -17,9 +19,10 @@ type CommonRepositories struct {
 }
 
 type AppRepositories struct {
-	AuthRepo    domain.AuthRepository
-	ArticleRepo articleDomain.ArticleRepository
-	DoctorRepo  doctorDomain.DoctorRepository
+	AuthRepo        domain.AuthRepository
+	ArticleRepo     articleDomain.ArticleRepository
+	DoctorRepo      doctorDomain.DoctorRepository
+	AppointmentRepo appointmentDomain.AppointmentRepository
 }
 
 func InitCommonRepos(Adapters *Adapters, Drivers *Drivers, config *config.Config) *CommonRepositories {
@@ -28,8 +31,9 @@ func InitCommonRepos(Adapters *Adapters, Drivers *Drivers, config *config.Config
 
 func InitRepos(db *sql.DB, redis *redis.Redis) *AppRepositories {
 	return &AppRepositories{
-		AuthRepo:    repository.NewAuthRepository(db),
-		ArticleRepo: articleRepo.NewArticleRepository(db),
-		DoctorRepo:  doctorRepo.NewDoctorRepository(db),
+		AuthRepo:        repository.NewAuthRepository(db),
+		ArticleRepo:     articleRepo.NewArticleRepository(db),
+		DoctorRepo:      doctorRepo.NewDoctorRepository(db),
+		AppointmentRepo: appointmentRepo.NewAppointmentRepository(db),
 	}
 }

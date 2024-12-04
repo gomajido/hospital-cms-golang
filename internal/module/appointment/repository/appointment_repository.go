@@ -11,18 +11,18 @@ import (
 	"github.com/gomajido/hospital-cms-golang/internal/module/appointment/domain"
 )
 
-type appointmentRepository struct {
+type AppointmentRepository struct {
 	db *sql.DB
 }
 
 func NewAppointmentRepository(db *sql.DB) domain.AppointmentRepository {
-	return &appointmentRepository{
+	return &AppointmentRepository{
 		db: db,
 	}
 }
 
 // Create creates a new appointment
-func (r *appointmentRepository) Create(ctx context.Context, appointment *domain.Appointment) error {
+func (r *AppointmentRepository) Create(ctx context.Context, appointment *domain.Appointment) error {
 	query := `INSERT INTO appointments (
 		id, user_id, doctor_id, doctor_schedule_id, appointment_date,
 		appointment_time, status, reason, notes, reschedule_count,
@@ -46,7 +46,7 @@ func (r *appointmentRepository) Create(ctx context.Context, appointment *domain.
 }
 
 // GetByID gets an appointment by ID with related data
-func (r *appointmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Appointment, error) {
+func (r *AppointmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Appointment, error) {
 	query := `
 		SELECT 
 			a.id, a.user_id, a.doctor_id, a.doctor_schedule_id,
@@ -115,7 +115,7 @@ func (r *appointmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*dom
 }
 
 // GetByUserID gets appointments for a user with pagination
-func (r *appointmentRepository) GetByUserID(ctx context.Context, userID uuid.UUID, page, limit int) ([]domain.Appointment, int64, error) {
+func (r *AppointmentRepository) GetByUserID(ctx context.Context, userID uuid.UUID, page, limit int) ([]domain.Appointment, int64, error) {
 	var appointments []domain.Appointment
 	var total int64
 	offset := (page - 1) * limit
@@ -204,7 +204,7 @@ func (r *appointmentRepository) GetByUserID(ctx context.Context, userID uuid.UUI
 }
 
 // GetByDoctorID gets appointments for a doctor with pagination
-func (r *appointmentRepository) GetByDoctorID(ctx context.Context, doctorID uuid.UUID, page, limit int) ([]domain.Appointment, int64, error) {
+func (r *AppointmentRepository) GetByDoctorID(ctx context.Context, doctorID uuid.UUID, page, limit int) ([]domain.Appointment, int64, error) {
 	var appointments []domain.Appointment
 	var total int64
 	offset := (page - 1) * limit
@@ -293,7 +293,7 @@ func (r *appointmentRepository) GetByDoctorID(ctx context.Context, doctorID uuid
 }
 
 // Update updates an appointment
-func (r *appointmentRepository) Update(ctx context.Context, appointment *domain.Appointment) error {
+func (r *AppointmentRepository) Update(ctx context.Context, appointment *domain.Appointment) error {
 	query := `UPDATE appointments SET
 		appointment_date = ?, appointment_time = ?, status = ?,
 		reason = ?, notes = ?, reschedule_count = ?, updated_at = ?
@@ -324,7 +324,7 @@ func (r *appointmentRepository) Update(ctx context.Context, appointment *domain.
 }
 
 // Cancel cancels an appointment
-func (r *appointmentRepository) Cancel(ctx context.Context, id uuid.UUID, req *domain.CancelAppointmentRequest) (*domain.Appointment, error) {
+func (r *AppointmentRepository) Cancel(ctx context.Context, id uuid.UUID, req *domain.CancelAppointmentRequest) (*domain.Appointment, error) {
 	// Get the appointment first to verify it exists
 	_, err := r.GetByID(ctx, id)
 	if err != nil {
@@ -366,7 +366,7 @@ func (r *appointmentRepository) Cancel(ctx context.Context, id uuid.UUID, req *d
 }
 
 // Reschedule updates appointment date and time, and increments reschedule count
-func (r *appointmentRepository) Reschedule(ctx context.Context, id uuid.UUID, date time.Time, timeSlot string) error {
+func (r *AppointmentRepository) Reschedule(ctx context.Context, id uuid.UUID, date time.Time, timeSlot string) error {
 	query := `UPDATE appointments SET
 		appointment_date = ?, appointment_time = ?,
 		reschedule_count = reschedule_count + 1,
@@ -403,7 +403,7 @@ func (r *appointmentRepository) Reschedule(ctx context.Context, id uuid.UUID, da
 }
 
 // CheckAvailability checks if a time slot is available for a doctor
-func (r *appointmentRepository) CheckAvailability(ctx context.Context, req *domain.CheckAvailabilityRequest) (bool, error) {
+func (r *AppointmentRepository) CheckAvailability(ctx context.Context, req *domain.CheckAvailabilityRequest) (bool, error) {
 	// Parse appointment date
 	appointmentDate, err := time.Parse("2006-01-02", req.AppointmentDate)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gomajido/hospital-cms-golang/config"
 	"github.com/gomajido/hospital-cms-golang/internal/dependency"
+	appointmentRouter "github.com/gomajido/hospital-cms-golang/internal/module/appointment/router"
 	articleRouter "github.com/gomajido/hospital-cms-golang/internal/module/article/router"
 	authRouter "github.com/gomajido/hospital-cms-golang/internal/module/auth/router"
 	doctorRouter "github.com/gomajido/hospital-cms-golang/internal/module/doctor/router"
@@ -31,6 +32,10 @@ func Run(r *Router) error {
 		return c.JSON("pong")
 	})
 
+	app.Get("/pong", func(c *fiber.Ctx) error {
+		return c.JSON("ping")
+	})
+
 	// API routes
 	v1 := app.Group("/api/v1")
 
@@ -42,6 +47,9 @@ func Run(r *Router) error {
 
 	// Register doctor routes
 	doctorRouter.RegisterDoctorRoutes(v1, r.ApplicationHandler.DoctorHandler, r.ApplicationHandler.AuthMiddleware)
+
+	// Register appointment routes
+	appointmentRouter.RegisterAppointmentRoutes(v1, r.ApplicationHandler.AppointmentHandler, r.ApplicationHandler.AuthMiddleware)
 
 	err := app.Listen(r.HttpConfig.Address)
 	if err != nil {
